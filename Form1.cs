@@ -78,7 +78,7 @@ namespace SteinbergDithering
                 string name = DateTime.Now.ToLongTimeString().Replace('.', ' ').Replace(':', ' ');
                 bmp.Save(name + ".bmp", ImageFormat.Bmp);
                 buttonSave.Enabled = false;
-                MessageBox.Show("Dosya " + name + " ismi ile kayıt edildi", "Başarılı!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("File saved as " + name , "Succesful!", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
