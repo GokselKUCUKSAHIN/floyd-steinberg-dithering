@@ -20,9 +20,13 @@ namespace SteinbergDithering
         private static float errG; //error of Green
         private static float errB; //error of Blue
 
-        public static Bitmap Make(Bitmap original, int factor)
+        public static Bitmap Make(Bitmap original, int factor, bool isBlackWhite)
         {
             SetImage(original);
+            if(isBlackWhite)
+            {
+                image = PaintItBlack(image);
+            }
             return Dither(image, factor);
         }
 
@@ -118,5 +122,20 @@ namespace SteinbergDithering
             bmap.SetPixel(x, y, c);
         }
 
+        private static Bitmap PaintItBlack(Bitmap bitmap)
+        {
+            Bitmap black = (Bitmap)bitmap.Clone();
+            for (int i = 0; i < black.Width; i++)
+            {
+                for (int x = 0; x < black.Height; x++)
+                {
+                    Color oc = black.GetPixel(i, x);
+                    int grayScale = (int)((oc.R * 0.3) + (oc.G * 0.59) + (oc.B * 0.11));
+                    Color nc = Color.FromArgb(oc.A, grayScale, grayScale, grayScale);
+                    black.SetPixel(i, x, nc);
+                }
+            }
+            return black;
+        }
     }
 }
