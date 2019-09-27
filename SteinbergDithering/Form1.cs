@@ -18,7 +18,8 @@ namespace SteinbergDithering
         {
             InitializeComponent();
         }
-
+        string title = "JellyBeanci Steinberg Dithering ";
+        int factor;
         OpenFileDialog od = new OpenFileDialog();
         Bitmap bmp;
         Bitmap image;
@@ -28,7 +29,8 @@ namespace SteinbergDithering
         {
             od.Filter = "Image Files(*.bmp;*.jpg;*.png)|*.BMP;*.JPG;*.PNG";
             od.DefaultExt = ".png";
-
+            this.factor = trackBar1.Value;
+            this.Text = title + "Factor: " + factor.ToString();
         }
 
         private void buttonLoad_Click(object sender, EventArgs e)
@@ -50,7 +52,7 @@ namespace SteinbergDithering
         private void buttonDither_Click(object sender, EventArgs e)
         {
             buttonDither.Enabled = false;
-            dithered = Dithering.Make(image, 2);
+            dithered = Dithering.Make(image, factor, checkBox1.Checked);
             if (dithered != null)
             {
                 //pictureBoxView.Image = dithered;
@@ -76,7 +78,14 @@ namespace SteinbergDithering
                 string name = DateTime.Now.ToLongTimeString().Replace('.', ' ').Replace(':', ' ');
                 bmp.Save(name + ".bmp", ImageFormat.Bmp);
                 buttonSave.Enabled = false;
+                MessageBox.Show("Dosya " + name + " ismi ile kayıt edildi", "Başarılı!", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
+        }
+
+        private void trackBar1_Scroll(object sender, EventArgs e)
+        {
+            this.factor = trackBar1.Value;
+            this.Text = title + "Factor: " + factor.ToString();
         }
     }
 }
