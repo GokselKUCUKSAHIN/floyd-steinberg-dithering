@@ -60,23 +60,23 @@ namespace SteinbergDithering
                     float oldR = pix.R;
                     float oldG = pix.G;
                     float oldB = pix.B;
-
-                    int newR = (int)Math.Round(factor * oldR / 255) * (255 / factor);
-                    int newG = (int)Math.Round(factor * oldG / 255) * (255 / factor);
-                    int newB = (int)Math.Round(factor * oldB / 255) * (255 / factor);
-
+                    //
+                    byte newR = (byte)(Math.Round(factor * oldR / 255) * (255 / factor));
+                    byte newG = (byte)(Math.Round(factor * oldG / 255) * (255 / factor));
+                    byte newB = (byte)(Math.Round(factor * oldB / 255) * (255 / factor));
+                    //
                     ditherImage.SetPixel(x, y, Color.FromArgb(newR, newG, newB));
-
+                    //
                     errR = oldR - newR;
                     errG = oldG - newG;
                     errB = oldB - newB;
-
+                    //
                     SetPx(ditherImage, x + 1, y, 7);
-
+                    //
                     SetPx(ditherImage, x - 1, y + 1, 3);
-
+                    //
                     SetPx(ditherImage, x, y + 1, 5);
-
+                    //
                     SetPx(ditherImage, x + 1, y + 1, 1);
                 }
             }
@@ -118,7 +118,7 @@ namespace SteinbergDithering
             {
                 b = 255;
             }
-            c = Color.FromArgb((int)r, (int)g, (int)b);
+            c = Color.FromArgb((byte)r, (byte)g, (byte)b);
             bmap.SetPixel(x, y, c);
         }
 
