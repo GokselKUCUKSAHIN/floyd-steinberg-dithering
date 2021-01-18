@@ -9,31 +9,40 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading;
 
 namespace SteinbergDithering
 {
     public partial class Form1 : Form
     {
-        public Form1()
-        {
-            InitializeComponent();
-        }
-        string title = "JellyBeanci Steinberg Dithering ";
-        int factor;
-        OpenFileDialog od = new OpenFileDialog();
-        Bitmap bmp;
-        Bitmap image;
+
+        //
+        #region GLOBAL VARIABLES
+        static readonly string TITLE = "JellyBeanci Steinberg Dithering ";
+        static int factor;
+        static OpenFileDialog od = new OpenFileDialog();
+        static Bitmap bmp;
+        static Bitmap image;
+        static bool isGrayScale = false;
+        #endregion
+        //
+
+        public Form1() => InitializeComponent();
+
+   
         Bitmap dithered;
-        bool openFile = false;
+        // bool openFile = false;
+
+
         private void Form1_Load(object sender, EventArgs e)
         {
             od.Filter = "Image Files(*.bmp;*.jpg;*.png)|*.BMP;*.JPG;*.PNG";
             od.DefaultExt = ".png";
-            this.factor = trackBar1.Value;
-            this.Text = title + "Factor: " + factor.ToString();
+            factor = factorSlider.Value;
+            this.Text = TITLE + "Factor: " + factor.ToString();
         }
 
-        private void buttonLoad_Click(object sender, EventArgs e)
+        private void ButtonLoad_Click(object sender, EventArgs e)
         {
             if (od.ShowDialog() == DialogResult.OK)
             {
@@ -41,7 +50,7 @@ namespace SteinbergDithering
                 if (image != null)
                 {
                     this.pictureBoxView.Image = image;
-                    openFile = true;
+                    //openFile = true; //idk
                     buttonDither.Enabled = true;
                     dithered = (Bitmap)image.Clone();
                     bmp = (Bitmap)image.Clone();
@@ -49,17 +58,24 @@ namespace SteinbergDithering
             }
         }
 
-        private void buttonDither_Click(object sender, EventArgs e)
+        private void ButtonDither_Click(object sender, EventArgs e)
         {
             buttonDither.Enabled = false;
-            dithered = Dithering.Make(image, factor, checkBox1.Checked);
+            new Thread(DitherThreadMethod).Start();
+
+            buttonSave.Enabled = true;
+        }
+
+        private void DitherThreadMethod()
+        {
+            dithered = Dithering.Make(image, factor, isGrayScale);
             if (dithered != null)
             {
                 //pictureBoxView.Image = dithered;
-                Draw();
-                buttonSave.Enabled = true;
+                new Thread(Draw).Start();
             }
         }
+
         Graphics g;
         private void Draw()
         {
@@ -71,21 +87,32 @@ namespace SteinbergDithering
             g.Dispose();
         }
 
-        private void buttonSave_Click(object sender, EventArgs e)
+        private void ButtonSave_Click(object sender, EventArgs e)
+        {
+            new Thread(SaveFile).Start();
+            this.buttonSave.Enabled = false;
+        }
+        
+        private void SaveFile()
         {
             if (bmp != null)
             {
                 string name = DateTime.Now.ToLongTimeString().Replace('.', ' ').Replace(':', ' ');
                 bmp.Save(name + ".bmp", ImageFormat.Bmp);
-                buttonSave.Enabled = false;
                 MessageBox.Show("Dosya " + name + " ismi ile kayıt edildi", "Başarılı!", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
-        private void trackBar1_Scroll(object sender, EventArgs e)
+        private void FactorSlider_Scroll(object sender, EventArgs e)
         {
-            this.factor = trackBar1.Value;
-            this.Text = title + "Factor: " + factor.ToString();
+            factor = factorSlider.Value;
+            buttonDither.Enabled = true;
+            this.Text = TITLE + "Factor: " + factor.ToString();
+        }
+
+        private void IsGrayScale_Changed(object sender, EventArgs e)
+        {
+            isGrayScale = this.isGrayScaleCheckbox.Checked;
         }
     }
 }
