@@ -9,76 +9,31 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
-using System.Threading;
 
 namespace SteinbergDithering
 {
     public partial class Form1 : Form
     {
-        //
-        #region GLOBAL VARIABLES
-        static readonly string TITLE = "JellyBeanci Steinberg Dithering ";
-        static OpenFileDialog od = new OpenFileDialog();
-        static Graphics g = null;
-        static bool isGrayScale = false;
-        static Bitmap image = null;
-        byte[,,] imageArray = null;
-        byte[,,] ditheredArray = null;
-        static int factor;
-        //static int factor;
-        static Bitmap bmp;
-        //static Bitmap image;
-        #endregion
-        //
-        //Bitmap dithered;
-        // bool openFile = false;
-
-        public Form1() => InitializeComponent();
-
+        public Form1()
+        {
+            InitializeComponent();
+        }
+        string title = "JellyBeanci Steinberg Dithering ";
+        int factor;
+        OpenFileDialog od = new OpenFileDialog();
+        Bitmap bmp;
+        Bitmap image;
+        Bitmap dithered;
+        bool openFile = false;
         private void Form1_Load(object sender, EventArgs e)
         {
             od.Filter = "Image Files(*.bmp;*.jpg;*.png)|*.BMP;*.JPG;*.PNG";
             od.DefaultExt = ".png";
-            factor = factorSlider.Value;
-            SetTitle(factor);
+            this.factor = trackBar1.Value;
+            this.Text = title + "Factor: " + factor.ToString();
         }
 
-        private void SetTitle(int factor)
-        {
-            this.Text = TITLE + "Factor: " + factor.ToString();
-        }
-
-        private void DitherThreadMethod()
-        {
-            ditheredArray = Dithering.Make(imageArray, factor, isGrayScale);
-            if (ditheredArray != null)
-            {
-                new Thread(Draw).Start();
-            }
-        }
-
-        private void Draw()
-        {
-            g = Graphics.FromImage(image);
-            g.Clear(Color.White);
-            bmp = Dithering.GetBitmapFromArray(ditheredArray);
-            g.DrawImage(bmp, 0, 0, image.Width, image.Height); //print original here
-            pictureBoxView.Image = bmp;
-            g.Dispose();
-        }
-
-        private void SaveFile()
-        {
-            if (bmp != null)
-            {
-                string name = DateTime.Now.ToLongTimeString().Replace('.', ' ').Replace(':', ' ');
-                bmp.Save(name + ".bmp", ImageFormat.Bmp);
-                MessageBox.Show("Dosya " + name + " ismi ile kayıt edildi", "Başarılı!", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-        }
-
-        // EVENTS
-        private void ButtonLoad_Click(object sender, EventArgs e)
+        private void buttonLoad_Click(object sender, EventArgs e)
         {
             if (od.ShowDialog() == DialogResult.OK)
             {
@@ -86,35 +41,51 @@ namespace SteinbergDithering
                 if (image != null)
                 {
                     this.pictureBoxView.Image = image;
-                    this.imageArray = Dithering.GetImageArray(image);
+                    openFile = true;
                     buttonDither.Enabled = true;
+                    dithered = (Bitmap)image.Clone();
+                    bmp = (Bitmap)image.Clone();
                 }
             }
         }
 
-        private void ButtonDither_Click(object sender, EventArgs e)
+        private void buttonDither_Click(object sender, EventArgs e)
         {
             buttonDither.Enabled = false;
-            buttonSave.Enabled = true;
-            new Thread(DitherThreadMethod).Start();
+            dithered = Dithering.Make(image, factor, checkBox1.Checked);
+            if (dithered != null)
+            {
+                //pictureBoxView.Image = dithered;
+                Draw();
+                buttonSave.Enabled = true;
+            }
+        }
+        Graphics g;
+        private void Draw()
+        {
+            g = Graphics.FromImage(bmp);
+            g.Clear(Color.White);
+            //g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias; //AA
+            g.DrawImage(dithered, 0, 0, dithered.Width, dithered.Height); //print original here
+            pictureBoxView.Image = bmp;
+            g.Dispose();
         }
 
-        private void ButtonSave_Click(object sender, EventArgs e)
+        private void buttonSave_Click(object sender, EventArgs e)
         {
-            new Thread(SaveFile).Start();
-            this.buttonSave.Enabled = false;
+            if (bmp != null)
+            {
+                string name = DateTime.Now.ToLongTimeString().Replace('.', ' ').Replace(':', ' ');
+                bmp.Save(name + ".bmp", ImageFormat.Bmp);
+                buttonSave.Enabled = false;
+                MessageBox.Show("Dosya " + name + " ismi ile kayıt edildi", "Başarılı!", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
-        private void FactorSlider_Scroll(object sender, EventArgs e)
+        private void trackBar1_Scroll(object sender, EventArgs e)
         {
-            buttonDither.Enabled = true;
-            SetTitle(factorSlider.Value);
-            factor = factorSlider.Value;
-        }
-
-        private void IsGrayScale_Changed(object sender, EventArgs e)
-        {
-            isGrayScale = this.isGrayScaleCheckbox.Checked;
+            this.factor = trackBar1.Value;
+            this.Text = title + "Factor: " + factor.ToString();
         }
     }
 }

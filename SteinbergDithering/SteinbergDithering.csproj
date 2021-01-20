@@ -47,7 +47,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dithering.cs" />
-    <Compile Include="Error.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
