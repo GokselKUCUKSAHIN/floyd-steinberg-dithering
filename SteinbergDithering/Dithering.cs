@@ -23,7 +23,7 @@ namespace SteinbergDithering
         public static Bitmap Make(Bitmap original, int factor, bool isBlackWhite)
         {
             SetImage(original);
-            if(isBlackWhite)
+            if (isBlackWhite)
             {
                 image = PaintItBlack(image);
             }
@@ -136,6 +136,71 @@ namespace SteinbergDithering
                 }
             }
             return black;
+        }
+
+        private static byte[,] PaintItBlack(byte[,,] imgArr)
+        {
+            // R' = G' = B'  = 0.299R + 0.587G + 0.114B
+            if (imgArr != null)
+            {
+                byte[,] gray = new byte[imgArr.GetLength(0), imgArr.GetLength(1)];
+                for (int i = 0; i < imgArr.GetLength(0); i++)
+                {
+                    for (int j = 0; j < imgArr.GetLength(1); j++)
+                    {
+                        byte grayScale = CheckSize(0.299 * imgArr[i, j, 0] + 0.587 * imgArr[i, j, 1] + 0.114 * imgArr[i, j, 2]);
+                        gray[i, j] = grayScale;
+                    }
+                }
+                return gray;
+            }
+            return null;
+        }
+
+        private static byte CheckSize(double input)
+        {
+            return CheckSize((int)Math.Round(input));
+        }
+
+        private static byte CheckSize(int input)
+        {
+            if (input < 0)
+            {
+                return 0;
+            }
+            else if (input > 255)
+            {
+                return 255;
+            }
+            else
+            {
+                return (byte)input;
+            }
+        }
+
+        public static byte[,,] GetImageArray(Bitmap bmp)
+        {
+            if (bmp != null)
+            {
+                int _bmpHeight = bmp.Height;
+                int _bmpWidth = bmp.Width;
+                if (_bmpWidth > 10 && _bmpHeight > 10)
+                {
+                    byte[,,] arr = new byte[_bmpHeight, _bmpWidth, 3];
+                    for (int i = 0; i < _bmpHeight; i++)
+                    {
+                        for (int j = 0; j < _bmpWidth; j++)
+                        {
+                            // For every pixel
+                            arr[i, j, 0] = bmp.GetPixel(i, j).R;     // Red
+                            arr[i, j, 1] = bmp.GetPixel(i, j).G;    // Green
+                            arr[i, j, 2] = bmp.GetPixel(i, j).B;    // Blue
+                        }
+                    }
+                    return arr;
+                }
+            }
+            return null;
         }
     }
 }

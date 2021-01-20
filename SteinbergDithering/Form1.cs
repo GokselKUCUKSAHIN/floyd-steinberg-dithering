@@ -54,6 +54,10 @@ namespace SteinbergDithering
                     buttonDither.Enabled = true;
                     dithered = (Bitmap)image.Clone();
                     bmp = (Bitmap)image.Clone();
+                    //MessageBox.Show(String.Format("{0} {1}", dithered.Height, dithered.Width));
+                    //MessageBox.Show(String.Format("{0}",dithered.GetPixel(dithered.Width-1,dithered.Height-1).R));
+                    byte test = 256;
+
                 }
             }
         }
