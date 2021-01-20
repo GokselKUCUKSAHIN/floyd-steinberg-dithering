@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -13,129 +14,141 @@ namespace SteinbergDithering
 {
     class Dithering
     {
-        private static Bitmap image; //main image
-        private static Bitmap bmp; //target image
-
-        private static float errR; //error of Red
-        private static float errG; //error of Green
-        private static float errB; //error of Blue
-
-        public static Bitmap Make(Bitmap original, int factor, bool isBlackWhite)
+        /* REFORMATTED*/
+        public static byte[,,] Make(byte[,,] original, int factor, bool isGrayScale)
         {
-            SetImage(original);
-            if(isBlackWhite)
+            if (original != null)
             {
-                image = PaintItBlack(image);
-            }
-            return Dither(image, factor);
-        }
-
-        private static void SetImage(Bitmap img)
-        {
-            if (img != null)
-            {
-                //if not null
-                image = img;
-                bmp = (Bitmap)image.Clone();
+                byte[,,] clonedArray = (byte[,,])original.Clone();
+                if (isGrayScale)
+                {
+                    clonedArray = ConvertToGrayScale(clonedArray);
+                }
+                return Dither(clonedArray, factor);
             }
             else
             {
-                //if null throw exception.
                 throw new NullReferenceException();
             }
         }
 
-        private static Bitmap GetImage()
+        private static byte[,,] Dither(byte[,,] ditherImage, int factor)
         {
-            return bmp;
-        }
-
-        private static Bitmap Dither(Bitmap ditherImage, int factor)
-        {
-            for (int y = 0; y < ditherImage.Height - 1; y++)
+            for (int y = 0; y < ditherImage.GetLength(0) - 1; y++)
             {
-                for (int x = 1; x < ditherImage.Width - 1; x++)
+                for (int x = 1; x < ditherImage.GetLength(1) - 1; x++)
                 {
-                    Color pix = ditherImage.GetPixel(x, y);
-                    float oldR = pix.R;
-                    float oldG = pix.G;
-                    float oldB = pix.B;
+                    //Color pix = ditherImage.GetPixel(x, y);
+                    byte oldR = ditherImage[y, x, 0]; // R
+                    byte oldG = ditherImage[y, x, 1]; // G
+                    byte oldB = ditherImage[y, x, 2]; // B
                     //
-                    byte newR = (byte)(Math.Round(factor * oldR / 255) * (255 / factor));
-                    byte newG = (byte)(Math.Round(factor * oldG / 255) * (255 / factor));
-                    byte newB = (byte)(Math.Round(factor * oldB / 255) * (255 / factor));
+                    byte newR = (byte)(Math.Round(factor * oldR / 255.0) * (255 / factor));
+                    byte newG = (byte)(Math.Round(factor * oldG / 255.0) * (255 / factor));
+                    byte newB = (byte)(Math.Round(factor * oldB / 255.0) * (255 / factor));
                     //
-                    ditherImage.SetPixel(x, y, Color.FromArgb(newR, newG, newB));
+                    ditherImage[y, x, 0] = newR;
+                    ditherImage[y, x, 1] = newG;
+                    ditherImage[y, x, 2] = newB;
                     //
-                    errR = oldR - newR;
-                    errG = oldG - newG;
-                    errB = oldB - newB;
+                    Error err = new Error(oldR - newR, oldG - newG, oldB - newB);
                     //
-                    SetPx(ditherImage, x + 1, y, 7);
-                    //
-                    SetPx(ditherImage, x - 1, y + 1, 3);
-                    //
-                    SetPx(ditherImage, x, y + 1, 5);
-                    //
-                    SetPx(ditherImage, x + 1, y + 1, 1);
+                    SetPx(ditherImage, x + 1, y, 7, err);
+                    SetPx(ditherImage, x - 1, y + 1, 3, err);
+                    SetPx(ditherImage, x, y + 1, 5, err);
+                    SetPx(ditherImage, x + 1, y + 1, 1, err);
                 }
             }
             return ditherImage;
         }
 
-        private static void SetPx(Bitmap bmap, int x, int y, int factor)
+        private static void SetPx(byte[,,] img, int x, int y, int quant, Error err)
         {
-            //Color c = kitten.GetPixel(x + 1, y);
-            Color c = bmap.GetPixel(x, y);
-            float r = c.R;
-            float g = c.G;
-            float b = c.B;
-
-            r = r + (float)(errR * (factor / 16.0));
-            g = g + (float)(errG * (factor / 16.0));
-            b = b + (float)(errB * (factor / 16.0));
-            if (r < 0)
-            {
-                r = 0;
-            }
-            else if (r > 255)
-            {
-                r = 255;
-            }
-            if (g < 0)
-            {
-                g = 0;
-            }
-            else if (g > 255)
-            {
-                g = 255;
-            }
-            if (b < 0)
-            {
-                b = 0;
-            }
-            else if (b > 255)
-            {
-                b = 255;
-            }
-            c = Color.FromArgb((byte)r, (byte)g, (byte)b);
-            bmap.SetPixel(x, y, c);
+            double r = img[y, x, 0]; // R
+            double g = img[y, x, 1]; // G
+            double b = img[y, x, 2]; // B
+            //
+            r += err.r * (quant / 16.0);
+            g += err.g * (quant / 16.0);
+            b += err.b * (quant / 16.0);
+            //
+            img[y, x, 0] = CheckSize(r);
+            img[y, x, 1] = CheckSize(g);
+            img[y, x, 2] = CheckSize(b);
         }
 
-        private static Bitmap PaintItBlack(Bitmap bitmap)
+        private static byte[,,] ConvertToGrayScale(byte[,,] imgArr)
         {
-            Bitmap black = (Bitmap)bitmap.Clone();
-            for (int i = 0; i < black.Width; i++)
+            // R' = G' = B'  = 0.299R + 0.587G + 0.114B
+            if (imgArr != null)
             {
-                for (int x = 0; x < black.Height; x++)
+                byte[,,] gray = new byte[imgArr.GetLength(0), imgArr.GetLength(1), 3];
+                for (int i = 0; i < imgArr.GetLength(0); i++)
                 {
-                    Color oc = black.GetPixel(i, x);
-                    int grayScale = (int)((oc.R * 0.3) + (oc.G * 0.59) + (oc.B * 0.11));
-                    Color nc = Color.FromArgb(oc.A, grayScale, grayScale, grayScale);
-                    black.SetPixel(i, x, nc);
+                    for (int j = 0; j < imgArr.GetLength(1); j++)
+                    {
+                        byte grayScale = CheckSize(0.299 * imgArr[i, j, 0] + 0.587 * imgArr[i, j, 1] + 0.114 * imgArr[i, j, 2]);
+                        gray[i, j, 0] = grayScale;
+                        gray[i, j, 1] = grayScale;
+                        gray[i, j, 2] = grayScale;
+                    }
+                }
+                return gray;
+            }
+            return null;
+        }
+
+        private static byte CheckSize(double input) => CheckSize((int)Math.Round(input));
+
+        private static byte CheckSize(int input) => (input < 0) ? (byte)0 : ((input > 255) ? (byte)255 : (byte)input); // Looks nice but readablity sucks at this form :(
+
+        public static byte[,,] GetImageArray(Bitmap bmp)
+        {
+            Bitmap cloneBMP = (Bitmap)bmp.Clone();
+            if (cloneBMP != null)
+            {
+                int _bmpHeight = cloneBMP.Height;
+                int _bmpWidth = cloneBMP.Width;
+                if (_bmpWidth > 10 && _bmpHeight > 10)
+                {
+                    byte[,,] arr = new byte[_bmpHeight, _bmpWidth, 3];
+                    for (int i = 0; i < _bmpHeight; i++)
+                    {
+                        for (int j = 0; j < _bmpWidth; j++)
+                        {
+                            // For every pixel
+                            arr[i, j, 0] = cloneBMP.GetPixel(j, i).R;    // Red
+                            arr[i, j, 1] = cloneBMP.GetPixel(j, i).G;    // Green
+                            arr[i, j, 2] = cloneBMP.GetPixel(j, i).B;    // Blue
+                        }
+                    }
+                    //while (t1.IsAlive) ;
+                    return arr;
                 }
             }
-            return black;
+            return null;
+        }
+
+        public static Bitmap GetBitmapFromArray(byte[,,] imgArray)
+        {
+            if (imgArray != null)
+            {
+                int _height = imgArray.GetLength(0);
+                int _width = imgArray.GetLength(1);
+                if (_height > 1 && _width > 1 && imgArray.GetLength(2) == 3)
+                {
+                    Bitmap bmp = new Bitmap(_width, _height);
+                    for (int y = 0; y < _height; y++)
+                    {
+                        for (int x = 0; x < _width; x++)
+                        {
+                            bmp.SetPixel(x, y, Color.FromArgb(255, imgArray[y, x, 0], imgArray[y, x, 1], imgArray[y, x, 2]));
+                        }
+                    }
+                    return bmp;
+                }
+            }
+            throw new NullReferenceException("Array is Null!");
         }
     }
 }
